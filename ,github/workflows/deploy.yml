@@ -1,0 +1,60 @@
+name: Deploy to Amazon EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+
+      - name: update packages
+        run: npm audit
+
+      - name: install jest
+        run: npm install --save-dev ts-jest
+
+      - name: build
+        run: npm run build
+
+#      - name: Copy files via SCP
+#        env:
+#          EC2_HOST: ${{ secrets.EC2_HOST }}
+#          EC2_USER: ${{ secrets.EC2_USER }}
+#          KEY_PATH: ${{ secrets.KEY_PATH }}
+#        run: |
+#          sudo apt-get update -y
+#          sudo apt-get install -y sshpass
+#          echo "${{ secrets.KEY_PATH }}" > ec2_key.pem
+#          chmod 600 ec2_key.pem
+#          scp -i ec2_key.pem -o StrictHostKeyChecking=no -r ./dist ${EC2_USER}@${EC2_HOST}:/home/ubuntu/hello-world
+      
+      
+
+      - name: SSH and Deploy to EC2
+        env:
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          KEY_PATH: ${{ secrets.KEY_PATH }}
+
+        run: |
+          ssh -i ec2_key.pem -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << 'EOF'
+            cd /home/ubuntu/hello-world
+            npm install
+            pm2 restart dist/main.js
+          EOF
